@@ -20,7 +20,7 @@ jobs:
 
 
     - name: Deploy to EC2
-      uses: snehal/ssh-action@v1.0.3
+      uses: appleboy/ssh-action@v1.0.3
 
       with:
 
