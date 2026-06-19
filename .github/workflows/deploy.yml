@@ -1,0 +1,49 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - main
+
+
+jobs:
+
+  build-and-deploy:
+
+    runs-on: ubuntu-latest
+
+
+    steps:
+
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+
+    - name: Deploy to EC2
+      uses: snehal/ssh-action@v1.0.3
+
+      with:
+
+        host: ${{ secrets.EC2_HOST }}
+
+        username: ubuntu
+
+        key: ${{ secrets.EC2_PRIVATE_KEY }}
+
+        script: |
+         echo "Login to ECR"
+         aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 604264782540.dkr.ecr.us-east-1.amazonaws.com
+        
+         echo "pull latest image"
+         docker pull 604264782540.dkr.ecr.us-east-1.amazonaws.com/ecr-goml:latest
+        
+         echo "run new container"
+         docker run -d --name my-app -p 8000:8000 604264782540.dkr.ecr.us-east-1.amazonaws.com/ecr-goml:latest
+        
+         echo "Verify container"
+         docker ps 
+
+         echo "container logs"
+         docker logs my-app --tail 50
+      
+         echo "deployment completed successfully"
