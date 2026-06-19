@@ -1,44 +1,24 @@
-- name: Deploy to EC2
-  uses: appleboy/ssh-action@v1.0.3
-  with:
-    host: ${{ secrets.EC2_HOST }}
-    username: ubuntu
-    key: ${{ secrets.EC2_PRIVATE_KEY }}
-    port: 22
-    script: |
-      set -euo pipefail
+name: Deploy to EC2
 
-      echo "Check docker and aws availability"
-      if ! command -v docker >/dev/null 2>&1; then
-        echo "ERROR: docker is not installed on the host"
-        exit 1
-      fi
-      if ! command -v aws >/dev/null 2>&1; then
-        echo "ERROR: aws CLI is not installed on the host"
-        exit 1
-      fi
+on:
+  push:
+    branches:
+      - main
 
-      echo "Check AWS credentials / IAM role (attempt to get ECR authorization token)"
-      if ! aws sts get-caller-identity >/dev/null 2>&1; then
-        echo "WARNING: aws CLI not configured or no credentials available; ECR login/pull may fail"
-      fi
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
 
-      echo "Stop and remove existing container if present"
-      docker ps -a --filter "name=^/my-app$" --format '{{.ID}}' | grep -q . && docker rm -f my-app || true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      echo "Login to ECR"
-      aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 604264782540.dkr.ecr.us-east-1.amazonaws.com
-
-      echo "Pull latest image"
-      docker pull 604264782540.dkr.ecr.us-east-1.amazonaws.com/ecr-goml:latest
-
-      echo "Run new container"
-      docker run -d --name my-app -p 8000:8000 604264782540.dkr.ecr.us-east-1.amazonaws.com/ecr-goml:latest
-
-      echo "Verify container"
-      docker ps --filter "name=^/my-app$"
-
-      echo "Container logs"
-      docker logs my-app --tail 50 || true
-
-      echo "Deployment completed successfully"
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key: ${{ secrets.EC2_PRIVATE_KEY }}
+          port: 22
+          script: |
+            echo "Hello from EC2"
